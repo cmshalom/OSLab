@@ -1,6 +1,5 @@
 package il.ac.telhai.os.hardware;
 
-
 /**
  * 
  * @author cmshalom
@@ -8,12 +7,11 @@ package il.ac.telhai.os.hardware;
  * The counter is in terms of clock ticks
  * It will send an interrupt as soon as the counter gets down to zero
  */
-public class Timer implements Clockeable, InterruptSource {
-	CPU cpu;
+public class Timer extends Peripheral {
 	int countDownTimer = 0;
 	
 	public Timer(CPU cpu, Clock clock) {
-		this.cpu = cpu;
+		super(cpu);
 		clock.addDevice(this);
 	}
 
@@ -29,5 +27,10 @@ public class Timer implements Clockeable, InterruptSource {
 				cpu.interrupt(this);
 			}
 		}
+	}
+
+	@Override
+	public int getPriority() {
+		return 2;
 	}
 }

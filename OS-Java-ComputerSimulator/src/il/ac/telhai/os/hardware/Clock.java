@@ -6,7 +6,7 @@ import java.util.Set;
 
 /**
  * 
- * @author cmhalom
+ * @author cmshalom
  * This class simulates a clock with a given frequency
  * To every device known to it, it will send
  * approximately frequency ticks per second
