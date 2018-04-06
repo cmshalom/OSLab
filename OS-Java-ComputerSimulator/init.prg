@@ -11,4 +11,4 @@ loop:       mov   [ax],cx
     		cmp   cx, 0
 		    jnz   loop
 		    push  20
-            shutdown
+            halt
