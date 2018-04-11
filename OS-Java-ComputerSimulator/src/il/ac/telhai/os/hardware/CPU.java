@@ -16,7 +16,7 @@ public class CPU implements Clockeable {
 	private Clock clock;
 	private Registers registers = new Registers();
 	private Memory realMemory;
-    private Software running;
+	private Software running;
 	private HashMap<Class<? extends InterruptSource>, InterruptHandler> interruptVector = 
 			new HashMap<Class<? extends InterruptSource>, InterruptHandler>(); 
 	private InterruptSource pendingInterrupt;
@@ -27,17 +27,17 @@ public class CPU implements Clockeable {
 		this.realMemory = realMemory;
 	}
 
-    private boolean halted() {
-    	boolean ret = registers.getFlag(Registers.FLAG_HALTED);
-    	if (ret) clock.shutdown();
-    	return ret;
-    }
+	private boolean halted() {
+		boolean ret = registers.getFlag(Registers.FLAG_HALTED);
+		if (ret) clock.shutdown();
+		return ret;
+	}
 
-	
+
 	@Override
 	public void tick() {
 		if (halted()) return;
-		
+
 		if (pendingInterrupt != null) {
 			InterruptSource source = pendingInterrupt;
 			pendingInterrupt = null;
@@ -49,30 +49,30 @@ public class CPU implements Clockeable {
 			}
 		}
 
-	    if (running != null) {
-	    	// This allows us to run either an Operating system written in Java,
-	    	// or a program written in an Assembly Language
-		    if (running instanceof OperatingSystem) { 
-			    ((OperatingSystem) running).step();
-		    } else {
-		    	try {
-				ProgramLine programLine = ((Program)running).fetchLine(registers);
-				programLine.execute(registers, realMemory);
-		    	} catch (SystemCall call) {
-		    		interrupt(call);
-		    	}
-		    }
+		if (running != null) {
+			// This allows us to run either an Operating system written in Java,
+			// or a program written in an Assembly Language
+			if (running instanceof OperatingSystem) { 
+				((OperatingSystem) running).step();
+			} else {
+				try {
+					ProgramLine programLine = ((Program)running).fetchLine(registers);
+					programLine.execute(registers, realMemory);
+				} catch (SystemCall call) {
+					interrupt(call);
+				}
+			}
 		}
 	}
 
 	public void execute(Instruction instruction) {
-	    instruction.execute(registers, realMemory);
+		instruction.execute(registers, realMemory);
 	}
 
 	public void setInterruptHandler(Class<? extends InterruptSource> cls, InterruptHandler handler) {
 		interruptVector.put(cls , handler);
 	}
-	
+
 	private InterruptHandler getHandler(InterruptSource source) {
 		InterruptHandler result = null;
 		@SuppressWarnings("rawtypes")
@@ -92,9 +92,9 @@ public class CPU implements Clockeable {
 		running = software;
 		if (registers != null) this.registers = registers;
 	}
-	
+
 	public String getRegisters() {
 		return registers.toString();
 	}
-	
+
 }

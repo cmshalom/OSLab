@@ -48,6 +48,8 @@ public class Process {
 	}
 
 	public void run(CPU cpu) {
+		// TODO: The parameter cpu is currently unused. 
+		// It is useless if cpu will remain a static variable of Operating System	
 		cpu.contextSwitch(program, registers);
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
 	}
