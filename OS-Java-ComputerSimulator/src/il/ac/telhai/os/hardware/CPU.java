@@ -10,6 +10,13 @@ import il.ac.telhai.os.software.language.*;
 /**
  * 
  * @author cmshalom
+ * A simple CPU implementation that is quite different than a real one:
+ * The context switching is implemented in a very unrealistic way:
+ *    The CPU contains a pointer to the currently running software 
+ *    At every clock tick it will run one step of it, unless interrupted during the 
+ *    previous clock tick. 
+ *    In such a case it will run the interrupt handler if one is installed for 
+ *    the type of interrupt source.
  */
 public class CPU implements Clockeable {
 
@@ -60,13 +67,21 @@ public class CPU implements Clockeable {
 					programLine.execute(registers, realMemory);
 				} catch (SystemCall call) {
 					interrupt(call);
+				} catch (Trap trap) {
+					interrupt(trap);
+					registers.add(Register.IP, -1);
 				}
 			}
 		}
 	}
 
 	public void execute(Instruction instruction) {
-		instruction.execute(registers, realMemory);
+		try {
+			instruction.execute(registers, realMemory);
+		} catch (Trap t) {
+			this.interrupt(t);
+		}
+
 	}
 
 	public void setInterruptHandler(Class<? extends InterruptSource> cls, InterruptHandler handler) {
