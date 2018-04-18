@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import il.ac.telhai.os.software.Process;
+import il.ac.telhai.os.software.ProcessControlBlock;
 
 public class ComputerTest extends Computer {
 
@@ -21,11 +21,11 @@ public class ComputerTest extends Computer {
 				"\nAX=4	BX=0	CX=5	DX=0" +
 				"\nSP=92	IP=5	SI=0	DI=0" +
 				"\nBP=0	FL=2\t", c.cpu.getRegisters());
-		assertNull(Process.getProcess(1).getParent());
-		assertEquals(1,Process.getProcess(2).getParent().getId());
-		assertEquals(1,Process.getProcess(3).getParent().getId());
-		assertEquals(1,Process.getProcess(4).getParent().getId());
-		assertNull(Process.getProcess(5));
+		assertNull(ProcessControlBlock.getProcess(1).getParent());
+		assertEquals(1,ProcessControlBlock.getProcess(2).getParent().getId());
+		assertEquals(1,ProcessControlBlock.getProcess(3).getParent().getId());
+		assertEquals(1,ProcessControlBlock.getProcess(4).getParent().getId());
+		assertNull(ProcessControlBlock.getProcess(5));
 	}
 
 }
