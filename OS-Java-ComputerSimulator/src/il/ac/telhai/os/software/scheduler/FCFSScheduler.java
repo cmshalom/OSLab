@@ -3,6 +3,7 @@ package il.ac.telhai.os.software.scheduler;
 import org.apache.log4j.Logger;
 
 import il.ac.telhai.os.hardware.CPU;
+import il.ac.telhai.os.software.OperatingSystem;
 import il.ac.telhai.os.software.ProcessControlBlock;
 
 public class FCFSScheduler extends Scheduler {
@@ -26,7 +27,11 @@ public class FCFSScheduler extends Scheduler {
 	
 	@Override
 	public void schedule() {
+		ProcessControlBlock previouslyRunning = current;		
 		// TODO: Choose a process to run and run it
+		if (current != null && current != previouslyRunning) {
+			logger.info("Process " + current.getId() + " gets the CPU");
+		}
 	}
 
 }
