@@ -1,3 +1,0 @@
-Computer (Virtual Memory)
-Timer  (Round Robin Scheduler)
-CPU (Round Robin Scheduler)
