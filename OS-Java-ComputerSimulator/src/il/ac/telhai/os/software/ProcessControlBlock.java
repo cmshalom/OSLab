@@ -10,7 +10,9 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import il.ac.telhai.os.hardware.CPU;
+import il.ac.telhai.os.hardware.PageTableEntry;
 import il.ac.telhai.os.hardware.RealMemory;
+import il.ac.telhai.os.software.language.Operand;
 import il.ac.telhai.os.software.language.Program;
 import il.ac.telhai.os.software.language.Register;
 import il.ac.telhai.os.software.language.Registers;
@@ -28,6 +30,7 @@ public class ProcessControlBlock {
 	private int id;
 	private Program program;
 	Registers registers;
+	private PageTableEntry[]  pageTable;
 
 	public ProcessControlBlock(ProcessControlBlock parent) {
 		// Add to process tree
@@ -72,18 +75,20 @@ public class ProcessControlBlock {
 			return false;
 		}
 		setRegistersFor(program);
+		// TODO: Create a page table with empty entries
+		//       The table should contain one entry for the stack segment, one entry for the extra segment
+		//       and as mant data segments as needed (program.getDataSegments())
 		return true;
 	}
 
 	public void exit(int status) {
-		// TODO: assert (parent != null);
+		assert (parent != null);
 		root.children.addAll(children);
 		for (ProcessControlBlock child: children) {
 			child.parent = root;
 		}
 		children.clear();
-		if (parent != null) // TODO: remove this
-    		parent.children.remove(this);
+   		parent.children.remove(this);
 
 		idMap.remove(id);
 
@@ -101,6 +106,7 @@ public class ProcessControlBlock {
 		// TODO: (not for students) The parameter cpu is currently unused. 
 		// It is useless if cpu will remain a static variable of Operating System	
 		cpu.contextSwitch(program, registers);
+		// TODO: Set the page table of the CPU appropriately
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
 	}
 	
@@ -112,6 +118,19 @@ public class ProcessControlBlock {
 		registers.set(Register.AX, parent==null?-1:parent.id);				
 	}
 
+	public int getWord(Operand op) {
+		return op.getWord(registers, OperatingSystem.getInstance().cpu);
+	}
+
+	public int getByte(Operand op) {
+		return op.getByte(registers, OperatingSystem.getInstance().cpu);
+	}
+	
+	public String getString(Operand op) {
+			return op.getString(registers, OperatingSystem.getInstance().cpu);
+	}
+
+	
 	public Program getProgram() {
 		return program;
 	}

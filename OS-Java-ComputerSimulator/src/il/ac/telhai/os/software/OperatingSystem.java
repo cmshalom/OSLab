@@ -3,15 +3,9 @@ package il.ac.telhai.os.software;
 import java.util.Set;
 import org.apache.log4j.Logger;
 
-import il.ac.telhai.os.hardware.CPU;
-import il.ac.telhai.os.hardware.InterruptSource;
-import il.ac.telhai.os.hardware.Peripheral;
-import il.ac.telhai.os.hardware.PowerSwitch;
-import il.ac.telhai.os.software.language.Instruction;
-import il.ac.telhai.os.software.language.Operand;
-import il.ac.telhai.os.software.language.SystemCall;
-import il.ac.telhai.os.software.scheduler.FCFSScheduler;
-import il.ac.telhai.os.software.scheduler.Scheduler;
+import il.ac.telhai.os.hardware.*;
+import il.ac.telhai.os.software.language.*;
+import il.ac.telhai.os.software.scheduler.*;
 
 public class OperatingSystem implements Software {
 	private static final Logger logger = Logger.getLogger(OperatingSystem.class);
@@ -19,8 +13,11 @@ public class OperatingSystem implements Software {
 	private static OperatingSystem instance = null;
 	CPU cpu;
 	private Set<Peripheral> peripherals;
+	private Timer timer;
 	private boolean initialized = false;
 	private Scheduler scheduler;
+	VMM vmm;
+
 
 
 	public OperatingSystem (CPU cpu, Set<Peripheral> peripherals) {
@@ -40,7 +37,7 @@ public class OperatingSystem implements Software {
 		if (!initialized) {
 			initialize();
 		} else {
-			scheduler.schedule();;
+			scheduler.schedule();
 		}
 	}
 		
@@ -50,7 +47,7 @@ public class OperatingSystem implements Software {
 		if (!init.exec("init.prg")) {
 			throw new IllegalArgumentException ("Cannot load init");
 		}
-		scheduler = new FCFSScheduler(cpu, init);
+		scheduler = new RoundRobinScheduler(cpu, init, timer);
 		scheduler.schedule();
 		initialized = true;
 	}	
@@ -59,9 +56,13 @@ public class OperatingSystem implements Software {
 		for (Peripheral p : peripherals) {
 			if (p instanceof PowerSwitch) {
 				cpu.setInterruptHandler(p.getClass(), new PowerSwitchInterruptHandler());
+			} else if (p instanceof Timer) {
+				timer = (Timer) p;
+				cpu.setInterruptHandler(p.getClass(), new TimerInterruptHandler());
 			}
 		}
 		cpu.setInterruptHandler(SystemCall.class, new SystemCallInterruptHandler());
+		cpu.setInterruptHandler(PageFault.class, new VMM(cpu));
 	}
 
 
@@ -76,11 +77,21 @@ public class OperatingSystem implements Software {
 			shutdown();
 		}
 	}
-
+	
+	private class TimerInterruptHandler implements InterruptHandler {
+		@Override
+		public void handle(InterruptSource source) {
+			ProcessControlBlock current = scheduler.removeCurrent();
+			scheduler.addReady(current);
+			scheduler.schedule();
+		}
+	}
+	
 	private class SystemCallInterruptHandler implements InterruptHandler {
 		@Override
 		public void handle(InterruptSource source) {
 			SystemCall call = (SystemCall) source;
+			logger.trace(call);
 			Operand op1 = call.getOp1();
 			@SuppressWarnings("unused")
 			Operand op2 = call.getOp2();
@@ -95,12 +106,17 @@ public class OperatingSystem implements Software {
 				current.run(cpu);
 				break;
 			case EXEC:
-				current.exec(cpu.getString(op1));
+				current.exec(current.getString(op1));
 				current.run(cpu);
 				break;
 			case EXIT:
-				current.exit(cpu.getWord(op1));
+				current.exit(current.getWord(op1));
 				scheduler.removeCurrent();
+				scheduler.schedule();
+				break;
+			case YIELD:
+				scheduler.removeCurrent();
+				scheduler.addReady(current);
 				scheduler.schedule();
 				break;
 			case GETPID:
@@ -112,11 +128,9 @@ public class OperatingSystem implements Software {
 				current.run(cpu);
 				break;
 			case LOG:
-				logger.info(cpu.getString(call.getOp1()));
+				logger.info(current.getString(op1));
 				current.run(cpu);
                 break;
-
-                // TODO: Implement additional system calls here
 			default:
 				throw new IllegalArgumentException("Unknown System Call:" + call);
 			}

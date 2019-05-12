@@ -20,10 +20,7 @@ public class PowerSwitch extends Peripheral {
         	
 	public PowerSwitch(CPU cpu, Container container) {
 		super(cpu);
-		if (container != null) 	{
-			component = powerOffButton();
-			container.add(component);
-		}
+		if (container != null) 	component = powerOffButton();
 	}
 
 	private JButton powerOffButton() {
