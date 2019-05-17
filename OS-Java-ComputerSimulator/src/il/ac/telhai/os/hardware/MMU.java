@@ -47,11 +47,15 @@ public class MMU implements Memory {
 	public int getNumberOfSegments() {
 		return pageTable == null ? memory.getNumberOfSegments() : pageTable.length;
 	}
-
+	
+	public void copySegment(int destinationSegment, int sourceSegment) {
+		memory.dma(destinationSegment, sourceSegment);
+	}
+	
 	private int xlateSegmentNo(int pageNo, boolean isAWrite) {
 		if (pageTable == null) return pageNo;
-		PageTableEntry entry = pageTable[pageNo];
-		if (!entry.isMappedtoMemory()) throw new PageFault(entry);
+		PageTableEntry entry = (pageNo >= 0 && pageNo < pageTable.length) ? pageTable[pageNo] : null;
+		if (entry == null || !entry.isMappedtoMemory()) throw new PageFault(entry);
 		return entry.getSegmentNo();
 	}
 	
@@ -78,5 +82,5 @@ public class MMU implements Memory {
 		int segmentNo = xlateSegmentNo(pageNo, true);
 		memory.writeWord(segmentNo, offset, value);
 	}
-
+	
 }

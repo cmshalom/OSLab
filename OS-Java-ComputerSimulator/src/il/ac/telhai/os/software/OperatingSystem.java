@@ -62,12 +62,14 @@ public class OperatingSystem implements Software {
 			}
 		}
 		cpu.setInterruptHandler(SystemCall.class, new SystemCallInterruptHandler());
-		cpu.setInterruptHandler(PageFault.class, new VMM(cpu));
+		vmm = new VMM(cpu);
+		cpu.setInterruptHandler(PageFault.class, vmm);
 	}
 
 
 	private void shutdown() {
 		logger.info( "System going for shutdown");
+		vmm.shutdown();
 		cpu.execute(Instruction.create("HALT"));
 	}
 
@@ -86,7 +88,7 @@ public class OperatingSystem implements Software {
 			scheduler.schedule();
 		}
 	}
-	
+
 	private class SystemCallInterruptHandler implements InterruptHandler {
 		@Override
 		public void handle(InterruptSource source) {

@@ -37,13 +37,17 @@ public class VMM implements InterruptHandler {
 		logger.info("Allocating segment " + result);
 		return result;
 	}
-
+	
 	@Override
 	public void handle(InterruptSource source) {
 		PageFault fault = (PageFault) source;
 		PageTableEntry entry = fault.getEntry();
 		entry.setSegmentNo(getFreePage());
-		entry.setMappedToMemory(true);
+		entry.setMappedToMemory(true);			
+	}
+	
+	void shutdown( ) {
+		logger.info("Free Memory: " + freeMemoryPages.size() + " pages.");
 	}
 
 }

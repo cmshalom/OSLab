@@ -77,6 +77,7 @@ public class ProcessControlBlock {
 		}
 	}
 
+
 	
 	public boolean exec(String fileName) {
 		try {
@@ -100,7 +101,7 @@ public class ProcessControlBlock {
    		parent.children.remove(this);
 
 		idMap.remove(id);
-
+		
 	}
 
 
@@ -128,14 +129,17 @@ public class ProcessControlBlock {
 	}
 
 	public int getWord(Operand op) {
+		// TODO (not for students): Use this with caution, it does not handle page faults
 		return op.getWord(registers, OperatingSystem.getInstance().cpu);
 	}
 
 	public int getByte(Operand op) {
+		// TODO (not for students): Use this with caution, it does not handle page faults
 		return op.getByte(registers, OperatingSystem.getInstance().cpu);
 	}
 	
 	public String getString(Operand op) {
+		// TODO (not for students): Use this with caution, it does not handle page faults
 			return op.getString(registers, OperatingSystem.getInstance().cpu);
 	}
 
