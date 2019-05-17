@@ -67,6 +67,17 @@ public class ProcessControlBlock {
 		registers.set(Register.IP, program.getEntryPoint());
 	}
 
+	private void setPageTableFor(Program program) {
+        // Create a page table with 1 + program.getDataSegments() segments
+		// none of which is mapped
+		// Segment zero is the stack segment (see register settings above)
+		pageTable = new PageTableEntry[program.getDataSegments()+2];
+		for (int i = 0; i < pageTable.length; i++) {
+			pageTable[i] = new PageTableEntry();
+		}
+	}
+
+	
 	public boolean exec(String fileName) {
 		try {
 			this.program = new Program(fileName);
@@ -75,9 +86,7 @@ public class ProcessControlBlock {
 			return false;
 		}
 		setRegistersFor(program);
-		// TODO: Create a page table with empty entries
-		//       The table should contain one entry for the stack segment, one entry for the extra segment
-		//       and as mant data segments as needed (program.getDataSegments())
+		setPageTableFor(program);
 		return true;
 	}
 
@@ -106,7 +115,7 @@ public class ProcessControlBlock {
 		// TODO: (not for students) The parameter cpu is currently unused. 
 		// It is useless if cpu will remain a static variable of Operating System	
 		cpu.contextSwitch(program, registers);
-		// TODO: Set the page table of the CPU appropriately
+		cpu.setPageTable(pageTable);
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
 	}
 	

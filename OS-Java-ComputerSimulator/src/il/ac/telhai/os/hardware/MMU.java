@@ -48,32 +48,35 @@ public class MMU implements Memory {
 		return pageTable == null ? memory.getNumberOfSegments() : pageTable.length;
 	}
 
+	private int xlateSegmentNo(int pageNo, boolean isAWrite) {
+		if (pageTable == null) return pageNo;
+		PageTableEntry entry = pageTable[pageNo];
+		if (!entry.isMappedtoMemory()) throw new PageFault(entry);
+		return entry.getSegmentNo();
+	}
+	
 	@Override
 	public byte readByte(int pageNo, int offset) {
-		// TODO: Translate the pageNumber according to pageTable (if it exists),
-		//       Then perform the operation using the memory
-		return memory.readByte(pageNo, offset);
+		int segmentNo = xlateSegmentNo(pageNo, false);
+		return memory.readByte(segmentNo, offset);
 	}
 
 	@Override
 	public void writeByte(int pageNo, int offset, byte value) {
-		// TODO: Translate the pageNumber according to pageTable (if it exists),
-		//       Then perform the operation using the memory
-		memory.writeByte(pageNo, offset, value);
+		int segmentNo = xlateSegmentNo(pageNo, true);
+		memory.writeByte(segmentNo, offset, value);
 	}
 
 	@Override
 	public int readWord(int pageNo, int offset) {
-		// TODO: Translate the pageNumber according to pageTable (if it exists),
-		//       Then perform the operation using the memory
-		return memory.readWord(pageNo, offset);
+		int segmentNo = xlateSegmentNo(pageNo, false);
+		return memory.readWord(segmentNo, offset);			
 	}
 
 	@Override
 	public void writeWord(int pageNo, int offset, int value) {
-		// TODO: Translate the pageNumber according to pageTable (if it exists),
-		//       Then perform the operation using the memory
-		memory.writeWord(pageNo, offset, value);
+		int segmentNo = xlateSegmentNo(pageNo, true);
+		memory.writeWord(segmentNo, offset, value);
 	}
 
 }

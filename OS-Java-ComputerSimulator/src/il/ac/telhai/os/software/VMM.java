@@ -1,5 +1,8 @@
 package il.ac.telhai.os.software;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 import org.apache.log4j.Logger;
 
 import il.ac.telhai.os.hardware.InterruptSource;
@@ -12,6 +15,7 @@ public class VMM implements InterruptHandler {
 
 	private MMU mmu;
 	private int numberOfRealSegments;
+	private Queue<Integer> freeMemoryPages = null;
 
 	public VMM (MMU mmu) {
 		this.mmu = mmu;
@@ -20,16 +24,26 @@ public class VMM implements InterruptHandler {
 	}
 
 	private void initMemoryFreeList() {
-		// TODO: Initialize the list of free real memory segments
+		logger.info("Initializing Real Memory");
+		freeMemoryPages = new LinkedList<Integer>();
+		for (int i=1; i < this.numberOfRealSegments; i++) {
+			freeMemoryPages.add(i);
+		}
 		logger.info("Real Memory Initialized");
+	}
+
+	private int getFreePage() {
+		int result = freeMemoryPages.remove();
+		logger.info("Allocating segment " + result);
+		return result;
 	}
 
 	@Override
 	public void handle(InterruptSource source) {
 		PageFault fault = (PageFault) source;
 		PageTableEntry entry = fault.getEntry();
-		// TODO: Get a free segment from the free list
-		//       modify entry sppropriately
+		entry.setSegmentNo(getFreePage());
+		entry.setMappedToMemory(true);
 	}
 
 }
