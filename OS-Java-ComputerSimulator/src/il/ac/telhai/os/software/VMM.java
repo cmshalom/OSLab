@@ -38,12 +38,47 @@ public class VMM implements InterruptHandler {
 		return result;
 	}
 	
+	public PageTableEntry[] clonePageTable(PageTableEntry[] pageTable) {
+		PageTableEntry[] ret = new PageTableEntry[pageTable.length];
+		for (int i = 0; i < pageTable.length; i++) {
+			ret[i] = new PageTableEntry(pageTable[i]);
+			if (ret[i].isMappedtoMemory() || ret[i].isMappedtoDisc()) {
+				ret[i].setCopyOnWrite(true);			
+				pageTable[i].setCopyOnWrite(true);
+			}
+		}
+		return ret;
+	}
+	
+	public void releasePageTable (PageTableEntry[] pageTable) {
+		// TODO: (not for students) What happens if parent exits before children?
+		//       Shared pages should not be released. 
+		for (int i=0; i<pageTable.length; i++) {
+            PageTableEntry e = pageTable[i];
+            pageTable[i] = null;
+			if (e.isMappedtoMemory() && !e.isCopyOnWrite()) {
+				freeMemoryPages.add(e.getSegmentNo());
+			}
+		}
+	}
+
+
 	@Override
 	public void handle(InterruptSource source) {
 		PageFault fault = (PageFault) source;
 		PageTableEntry entry = fault.getEntry();
-		entry.setSegmentNo(getFreePage());
-		entry.setMappedToMemory(true);			
+		if (entry == null) {
+			throw new SegmentationViolation();
+		}
+		if (entry.isMappedtoMemory()) {
+			int newPage = getFreePage();
+			mmu.copySegment(newPage, entry.getSegmentNo());
+			entry.setSegmentNo(newPage);
+			entry.setCopyOnWrite(false);
+		} else {
+			entry.setSegmentNo(getFreePage());
+			entry.setMappedToMemory(true);			
+		}
 	}
 	
 	void shutdown( ) {

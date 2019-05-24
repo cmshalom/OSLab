@@ -64,6 +64,7 @@ public class OperatingSystem implements Software {
 		cpu.setInterruptHandler(SystemCall.class, new SystemCallInterruptHandler());
 		vmm = new VMM(cpu);
 		cpu.setInterruptHandler(PageFault.class, vmm);
+		cpu.setInterruptHandler(SegmentationViolation.class, new SegmentationFaultHandler());
 	}
 
 
@@ -85,6 +86,16 @@ public class OperatingSystem implements Software {
 		public void handle(InterruptSource source) {
 			ProcessControlBlock current = scheduler.removeCurrent();
 			scheduler.addReady(current);
+			scheduler.schedule();
+		}
+	}
+
+	private class SegmentationFaultHandler implements InterruptHandler {
+		@Override
+		public void handle(InterruptSource source) {
+			ProcessControlBlock current = scheduler.removeCurrent();
+			logger.info("Segmentation Fault in process:" + current.getId());
+			current.exit(256);
 			scheduler.schedule();
 		}
 	}

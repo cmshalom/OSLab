@@ -54,6 +54,7 @@ public class ProcessControlBlock {
 		if (parent != null) {
 			this.program = parent.program;
 			this.registers = new Registers(parent.registers);
+			this.pageTable = OperatingSystem.getInstance().vmm.clonePageTable(parent.pageTable);			
 		} else {
 			this.registers = new Registers();
 		}
@@ -80,6 +81,9 @@ public class ProcessControlBlock {
 
 	
 	public boolean exec(String fileName) {
+		if (pageTable != null) {
+		    OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
+		}
 		try {
 			this.program = new Program(fileName);
 		} catch (FileNotFoundException | ParseException e) {
@@ -102,6 +106,10 @@ public class ProcessControlBlock {
 
 		idMap.remove(id);
 		
+		OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
+		pageTable = null;
+
+
 	}
 
 

@@ -56,6 +56,7 @@ public class MMU implements Memory {
 		if (pageTable == null) return pageNo;
 		PageTableEntry entry = (pageNo >= 0 && pageNo < pageTable.length) ? pageTable[pageNo] : null;
 		if (entry == null || !entry.isMappedtoMemory()) throw new PageFault(entry);
+		if (entry.isCopyOnWrite() && isAWrite) throw new PageFault(entry);
 		return entry.getSegmentNo();
 	}
 	
