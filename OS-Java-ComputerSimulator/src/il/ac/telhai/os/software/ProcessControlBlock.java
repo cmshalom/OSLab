@@ -31,6 +31,8 @@ public class ProcessControlBlock {
 	private Program program;
 	Registers registers;
 	private PageTableEntry[]  pageTable;
+	private Signaller signaller;
+	boolean terminated = false;
 
 	public ProcessControlBlock(ProcessControlBlock parent) {
 		// Add to process tree
@@ -58,6 +60,7 @@ public class ProcessControlBlock {
 		} else {
 			this.registers = new Registers();
 		}
+		signaller = new Signaller(this);
 	}
 
 	private void setRegistersFor(Program program) {
@@ -69,7 +72,7 @@ public class ProcessControlBlock {
 	}
 
 	private void setPageTableFor(Program program) {
-        // Create a page table with 1 + program.getDataSegments() segments
+		// Create a page table with 1 + program.getDataSegments() segments
 		// none of which is mapped
 		// Segment zero is the stack segment (see register settings above)
 		pageTable = new PageTableEntry[program.getDataSegments()+2];
@@ -78,11 +81,9 @@ public class ProcessControlBlock {
 		}
 	}
 
-
-	
 	public boolean exec(String fileName) {
 		if (pageTable != null) {
-		    OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
+			OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
 		}
 		try {
 			this.program = new Program(fileName);
@@ -102,14 +103,14 @@ public class ProcessControlBlock {
 			child.parent = root;
 		}
 		children.clear();
-   		parent.children.remove(this);
+		parent.children.remove(this);
 
 		idMap.remove(id);
-		
+
 		OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
 		pageTable = null;
-
-
+		signaller = null;
+		terminated = true;
 	}
 
 
@@ -127,7 +128,7 @@ public class ProcessControlBlock {
 		cpu.setPageTable(pageTable);
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
 	}
-	
+
 	public void getPid() {
 		registers.set(Register.AX, id);		
 	}
@@ -145,21 +146,29 @@ public class ProcessControlBlock {
 		// TODO (not for students): Use this with caution, it does not handle page faults
 		return op.getByte(registers, OperatingSystem.getInstance().cpu);
 	}
-	
+
 	public String getString(Operand op) {
 		// TODO (not for students): Use this with caution, it does not handle page faults
-			return op.getString(registers, OperatingSystem.getInstance().cpu);
+		return op.getString(registers, OperatingSystem.getInstance().cpu);
 	}
 
-	
+
 	public Program getProgram() {
 		return program;
+	}
+
+	Signaller getSignaller() {
+		return signaller;
 	}
 
 	public int getId() {
 		return id;
 	}
 
+	public boolean isTerminated() {
+		return terminated;
+	}
+	
 	public ProcessControlBlock getParent() {
 		return parent;
 	}
@@ -167,7 +176,7 @@ public class ProcessControlBlock {
 	public static ProcessControlBlock getProcess(int id) {
 		return idMap.get(id);
 	}
-	
+
 	public static void shutdown() {
 		logger.info("Active Processes");
 		for (ProcessControlBlock p : idMap.values()) {
@@ -185,6 +194,6 @@ public class ProcessControlBlock {
 		String parentStr = (parent == null) ? "" : ",parent = " + parent.id; 
 		return "Process [id=" + id + parentStr +  ", program=" + program.getFileName() + "]";
 	}
-	
+
 
 }
