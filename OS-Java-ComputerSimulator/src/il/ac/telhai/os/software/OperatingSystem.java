@@ -145,6 +145,16 @@ public class OperatingSystem implements Software {
 				logger.info(current.getString(op1));
 				current.run(cpu);
                 break;
+			case KILL:
+				int pid = current.getWord(op1);
+				int signum = current.getWord(op2);
+				current.kill(pid, signum);
+				break;
+			case SIGNAL:
+				signum = current.getWord(op1);
+				int handler = current.getWord(op2);
+				current.signal(signum, handler);
+				break;                
 			default:
 				throw new IllegalArgumentException("Unknown System Call:" + call);
 			}

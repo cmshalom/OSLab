@@ -103,6 +103,7 @@ public class ProcessControlBlock {
 			child.parent = root;
 		}
 		children.clear();
+		parent.signaller.kill(Signal.SIGCHLD);
 		parent.children.remove(this);
 
 		idMap.remove(id);
@@ -127,6 +128,30 @@ public class ProcessControlBlock {
 		cpu.contextSwitch(program, registers);
 		cpu.setPageTable(pageTable);
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
+		signaller.handleSignals();
+	}
+
+	public void signal (int signum, int handler) {
+		try {
+			signaller.setHandler(signum, handler);
+			registers.set(Register.AX, 0);
+		} catch (Exception e) {
+			registers.set(Register.AX, -1);			
+		}
+	}
+	
+	public void kill (int pid, int signum) {
+		ProcessControlBlock receivingProcess = ProcessControlBlock.getProcess(pid);
+		if (receivingProcess == null) {
+			registers.set(Register.AX, -1);			
+		} else {
+			try {
+				receivingProcess.getSignaller().kill(signum);						
+				registers.set(Register.AX, 0);						
+			} catch (Exception e) {				
+				registers.set(Register.AX, -1);						
+			}
+		}
 	}
 
 	public void getPid() {
