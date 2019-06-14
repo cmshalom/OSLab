@@ -32,6 +32,10 @@ public class OperatingSystem implements Software {
 	public static OperatingSystem getInstance() {
 		return instance;
 	}
+	
+	Scheduler getScheduler() {
+		return scheduler;
+	}
 
 	public void step() {
 		if (!initialized) {
@@ -127,6 +131,15 @@ public class OperatingSystem implements Software {
 				current.exit(current.getWord(op1));
 				scheduler.removeCurrent();
 				scheduler.schedule();
+				break;
+			case WAIT:
+				boolean blocked = current.waitBlocked(current.getWord(op1));
+				if (blocked) {
+					scheduler.removeCurrent();
+					scheduler.schedule();					
+				} else {
+					current.run(cpu);					
+				}
 				break;
 			case YIELD:
 				scheduler.removeCurrent();

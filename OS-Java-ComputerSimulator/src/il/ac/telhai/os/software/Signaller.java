@@ -49,8 +49,9 @@ public class Signaller {
 		} 
 	}
 
-	public void handleSignals() {
+	public boolean signalsHandled() {
 		Signal s;
+		boolean ret = false;
 		while((s = pending.poll()) != null) {
 			logger.info("Handling " + s);
 			Instruction instr;
@@ -60,7 +61,9 @@ public class Signaller {
 			cpu.execute(instr);
 			instr = Instruction.create("PUSH " + s.getSigno());
 			logger.trace("Executing " + instr);
-			cpu.execute(instr);						
+			cpu.execute(instr);
+			ret = true;
 		}
+		return ret;
 	}
 }

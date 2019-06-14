@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import il.ac.telhai.os.hardware.CPU;
 import il.ac.telhai.os.hardware.PageTableEntry;
 import il.ac.telhai.os.hardware.RealMemory;
+import il.ac.telhai.os.software.language.Instruction;
 import il.ac.telhai.os.software.language.Operand;
 import il.ac.telhai.os.software.language.Program;
 import il.ac.telhai.os.software.language.Register;
@@ -32,7 +33,13 @@ public class ProcessControlBlock {
 	Registers registers;
 	private PageTableEntry[]  pageTable;
 	private Signaller signaller;
+
+	boolean waitingForChild = false;
+	int waitStatusAddress; 
+
+	// Exit
 	boolean terminated = false;
+	int terminationStatus = 0;
 
 	public ProcessControlBlock(ProcessControlBlock parent) {
 		// Add to process tree
@@ -98,22 +105,57 @@ public class ProcessControlBlock {
 
 	public void exit(int status) {
 		assert (parent != null);
+		// Transfer children to root (init)
 		root.children.addAll(children);
 		for (ProcessControlBlock child: children) {
 			child.parent = root;
 		}
 		children.clear();
-		parent.signaller.kill(Signal.SIGCHLD);
-		parent.children.remove(this);
 
-		idMap.remove(id);
-
+		// Deallocate resources
 		OperatingSystem.getInstance().vmm.releasePageTable (pageTable);
+		registers = null;
 		pageTable = null;
 		signaller = null;
+
+		// Become zombie
 		terminated = true;
+		terminationStatus = status;
+
+		// Notify parent
+		parent.signaller.kill(Signal.SIGCHLD);
+		if (parent.waitingForChild) {
+			OperatingSystem.getInstance().getScheduler().addReady(parent);			
+		}
+
 	}
 
+	boolean waitBlocked(int address) {
+		if (children.isEmpty()) {
+			registers.set(Register.AX, -1);
+			return false;
+		}
+		for (ProcessControlBlock child : children) {
+			if (child.terminated) {
+				rescueZombie(child, address);
+				return false;
+			}
+		}
+		// No child terminated
+		waitingForChild = true;
+		waitStatusAddress = address;
+		return true;
+	}
+
+	private void rescueZombie (ProcessControlBlock child, int address) {
+		if (address != 0) {
+			Instruction instr =  Instruction.create("MOV " + address + "," + child.terminationStatus);
+			OperatingSystem.getInstance().cpu.execute(instr);			
+		}
+		registers.set(Register.AX, child.getId());
+		idMap.remove(child.getId());
+		children.remove(child);		
+	}
 
 	public ProcessControlBlock fork() {
 		ProcessControlBlock child = new ProcessControlBlock (this);
@@ -123,12 +165,23 @@ public class ProcessControlBlock {
 	}
 
 	public void run(CPU cpu) {
-		// TODO: (not for students) The parameter cpu is currently unused. 
-		// It is useless if cpu will remain a static variable of Operating System	
 		cpu.contextSwitch(program, registers);
 		cpu.setPageTable(pageTable);
 		registers.setFlag(Registers.FLAG_USER_MODE, true);
-		signaller.handleSignals();
+		boolean signalsExisted = signaller.signalsHandled();		
+		if (waitingForChild) {
+			if (signalsExisted) {
+				registers.set(Register.AX, -1);  // Wait interrupted by signal
+			} else {
+				for (ProcessControlBlock child : children) {
+					if (child.terminated) {
+						rescueZombie(child, waitStatusAddress);
+						break;
+					}
+				}
+			}
+			waitingForChild = false;
+		}
 	}
 
 	public void signal (int signum, int handler) {
@@ -139,7 +192,7 @@ public class ProcessControlBlock {
 			registers.set(Register.AX, -1);			
 		}
 	}
-	
+
 	public void kill (int pid, int signum) {
 		ProcessControlBlock receivingProcess = ProcessControlBlock.getProcess(pid);
 		if (receivingProcess == null) {
@@ -193,7 +246,7 @@ public class ProcessControlBlock {
 	public boolean isTerminated() {
 		return terminated;
 	}
-	
+
 	public ProcessControlBlock getParent() {
 		return parent;
 	}
