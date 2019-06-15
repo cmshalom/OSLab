@@ -1,5 +1,9 @@
 package il.ac.telhai.os.software;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.log4j.Logger;
 
 import il.ac.telhai.os.hardware.InterruptSource;
@@ -12,6 +16,8 @@ public class VMM implements InterruptHandler {
 
 	private MMU mmu;
 	private int numberOfRealSegments;
+	private Map<Integer, Integer>  sharedMemorySegments = new HashMap<Integer, Integer>();
+
 
 	public VMM (MMU mmu) {
 		this.mmu = mmu;
@@ -33,6 +39,10 @@ public class VMM implements InterruptHandler {
 		logger.info("Real Memory Initialized");
 	}
 
+	/**
+	 * Side effect: exits from real mode upon exit
+	 * @return
+	 */
 	private int getFreePage() {
 		mmu.enterRealMode();
         for (int i=1; i<numberOfRealSegments; i++) {
@@ -54,17 +64,45 @@ public class VMM implements InterruptHandler {
 			if (ret[i].isMappedtoMemory() || ret[i].isMappedtoDisc()) {
 				ret[i].setCopyOnWrite(true);			
 				pageTable[i].setCopyOnWrite(true);
-				byte refCount = mmu.readByte(0, ret[i].getSegmentNo());
-				if (refCount==127) {
-					throw new IllegalStateException("Reference count reached 127 in page sharing");
-				}
-        		logger.trace("Sharing segment " + ret[i].getSegmentNo() + ", refcnt=" + (refCount+1));
-				mmu.writeByte(0, ret[i].getSegmentNo(), (byte) (refCount+1));
+				incRefCount(ret[i].getSegmentNo());
 			}
 		}
 		mmu.exitRealMode();
 		return ret;
 	}
+
+	/**
+	 * Increments reference count
+	 * Side effect: exits from real mode upon exit
+	 * @param segmentNo
+	 */
+	private void incRefCount(int segmentNo) {
+		mmu.enterRealMode();
+		byte refCount = mmu.readByte(0, segmentNo);
+		if (refCount==127) {
+			throw new IllegalStateException("Reference count reached 127 in page sharing");
+		}
+		logger.trace("Sharing segment " + segmentNo + ", refcnt=" + (refCount+1));
+		mmu.writeByte(0, segmentNo, (byte) (refCount+1));
+		mmu.exitRealMode();
+	}
+
+	/**
+	 * Decrements reference count
+	 * Side effect: exits from real mode upon exit
+	 * @param segmentNo
+	 */
+	private void decRefCount(int segmentNo) {
+		mmu.enterRealMode();
+		byte refCount = mmu.readByte(0, segmentNo);
+		if (refCount==0) {
+			throw new IllegalStateException("Reference count reached zero in page unsharing");
+		}
+		logger.trace("Releasing segment " + segmentNo + " ,refcnt=" + (refCount-1));
+		mmu.writeByte(0, segmentNo, (byte) (refCount-1));
+		mmu.exitRealMode();
+	}
+
 	
 	public void releasePageTable (PageTableEntry[] pageTable) {
 		mmu.enterRealMode();
@@ -72,9 +110,7 @@ public class VMM implements InterruptHandler {
             PageTableEntry e = pageTable[i];
             pageTable[i] = null;
 			if (e.isMappedtoMemory()) {
-				byte refCount = mmu.readByte(0, e.getSegmentNo());
-				mmu.writeByte(0, e.getSegmentNo(), (byte) (refCount-1));
-				logger.trace("Releasing segment " + e.getSegmentNo() + " ,refcnt=" + (refCount-1));
+				decRefCount(e.getSegmentNo());
 			}
 		}
 		mmu.exitRealMode();
@@ -103,7 +139,7 @@ public class VMM implements InterruptHandler {
 			entry.setMappedToMemory(true);			
 		}
 	}
-	
+
 	void shutdown( ) {
 		mmu.enterRealMode();
 		int numberOfFreePages = 0;
@@ -111,6 +147,10 @@ public class VMM implements InterruptHandler {
             if (mmu.readByte(0, i) == 0) numberOfFreePages++;
         }
 		mmu.exitRealMode();
+		logger.info("Shared Memory Segments: ");
+		for (Entry<Integer, Integer> e : sharedMemorySegments.entrySet()) {
+			logger.info("Key:" + e.getKey() + ", ID:" + e.getValue());
+		}
 		logger.info("Free Memory: " + numberOfFreePages + " pages.");
 	}
 

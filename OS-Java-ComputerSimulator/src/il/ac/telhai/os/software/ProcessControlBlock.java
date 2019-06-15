@@ -31,7 +31,7 @@ public class ProcessControlBlock {
 	private int id;
 	private Program program;
 	Registers registers;
-	private PageTableEntry[]  pageTable;
+	PageTableEntry[]  pageTable;
 	private Signaller signaller;
 
 	boolean waitingForChild = false;

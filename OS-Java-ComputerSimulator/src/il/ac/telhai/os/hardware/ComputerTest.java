@@ -15,16 +15,15 @@ public class ComputerTest extends Computer {
 		Computer c = new Computer(FREQUENCY, SEGMENT_SIZE, NUMBER_OF_SEGMENTS, NUMBER_OF_PAGES);
 		c.run();
 		assertEquals(		
-				"\nCS=0	DS=1	SS=0	ES=2" +
-				"\nAX=1	BX=4	CX=0	DX=0" +
-				"\nSP=100	IP=41	SI=0	DI=0" +
+				"\nCS=0	DS=3	SS=0	ES=2" +
+				"\nAX=16	BX=0	CX=4	DX=0" +
+				"\nSP=80	IP=52	SI=0	DI=20" +
 				"\nBP=0	FL=2\t", c.cpu.getRegisters());
 		assertEquals(1, ProcessControlBlock.getProcess(1).getId());
 		assertNull(ProcessControlBlock.getProcess(2));
 		assertNull(ProcessControlBlock.getProcess(3));
-		assertNull(ProcessControlBlock.getProcess(4));
-		assertEquals(5, ProcessControlBlock.getProcess(5).getId());
-		assertEquals(1, ProcessControlBlock.getProcess(5).getParent().getId());
+		assertEquals(4, ProcessControlBlock.getProcess(4).getId());
+		assertNull(ProcessControlBlock.getProcess(5));
 	}
 
 }

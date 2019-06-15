@@ -39,7 +39,10 @@ public enum Mnemonic {
 	GETPPID(3, false, 0),
 	KILL(3, false, 2),
 	SIGNAL(3, false, 2),
-	SHUTDOWN(3, false, 0);
+	SHUTDOWN(3, false, 0),
+	SHMGET(3, false, 1),
+	SHMAT(3, false, 1),
+	SHMDT(3, false, 1);
 	
 	private int type;  // 1-Directive, 2-Instruction, 3-System Call
 	private boolean privileged;
