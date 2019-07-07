@@ -10,6 +10,7 @@ import il.ac.telhai.os.hardware.InterruptSource;
 import il.ac.telhai.os.hardware.MMU;
 import il.ac.telhai.os.hardware.PageFault;
 import il.ac.telhai.os.hardware.PageTableEntry;
+import il.ac.telhai.os.software.language.Register;
 
 public class VMM implements InterruptHandler {
 	private static final Logger logger = Logger.getLogger(VMM.class);
@@ -137,6 +138,43 @@ public class VMM implements InterruptHandler {
 		} else {
 			entry.setSegmentNo(getFreePage());
 			entry.setMappedToMemory(true);			
+		}
+	}
+
+	int shmGet (int key) {
+		if (sharedMemorySegments.containsKey(key)) 	return sharedMemorySegments.get(key);
+
+		int id = this.getFreePage();
+		sharedMemorySegments.put(key, id);
+		return id;
+	}
+
+	void shmAt (ProcessControlBlock process, int id) {
+		PageTableEntry[] pageTable = process.pageTable;
+		if (sharedMemorySegments.containsValue(id)) {
+			for (int i= 0; i < pageTable.length; i++) {
+				if (!pageTable[i].isMappedtoMemory() && !pageTable[i].isMappedtoDisc()) {
+					pageTable[i].setMappedToMemory(true);
+					pageTable[i].setSegmentNo(id);
+					incRefCount(id);
+					process.registers.set(Register.AX, 0);
+					process.registers.set(Register.DS, i);
+					return;
+				}
+			}
+		}
+		process.registers.set(Register.AX, -1);			
+	}
+
+	void shmDt (ProcessControlBlock process, int entryNo) {
+		PageTableEntry e = process.pageTable[entryNo];
+		if (!e.isMappedtoMemory() || 
+		    !sharedMemorySegments.containsValue(e.getSegmentNo())) {
+			process.registers.set(Register.AX, -1);
+		} else {
+			decRefCount(e.getSegmentNo());
+			process.pageTable[entryNo] = new PageTableEntry();
+			process.registers.set(Register.AX, 0);
 		}
 	}
 

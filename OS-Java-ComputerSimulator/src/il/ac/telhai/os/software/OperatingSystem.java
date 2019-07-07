@@ -168,6 +168,19 @@ public class OperatingSystem implements Software {
 				int handler = current.getWord(op2);
 				current.signal(signum, handler);
 				break;                
+			case SHMGET:
+				int key = current.getWord(op1);
+				int id = vmm.shmGet(key);
+				current.registers.set(Register.AX, id);
+				break;
+			case SHMAT:
+				id = current.getWord(op1);
+				vmm.shmAt(current, id);
+				break;
+			case SHMDT:
+				int entryNo = current.getWord(op1);
+				vmm.shmDt(current, entryNo); 
+				break;			
 			default:
 				throw new IllegalArgumentException("Unknown System Call:" + call);
 			}
